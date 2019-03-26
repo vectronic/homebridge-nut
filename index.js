@@ -1,289 +1,338 @@
 'use strict';
 
-// Nut (Network UPS Tool) Platform for HomeBridge
-//
-// Remember to add platform to config.json. Example:
-// "platforms": [
-//     {
-//         "platform": "Nut",					// required
-//         "name": "Nut",					// required - Used for platform logging tags.
-//         "host": "localhost",					// Optional - defaults to localhost
-//         "port": "3493",					// Optional - defaults to 3493
-//         "search_time_delay": "1",				// Optional - defaults to 1 second. Initial search time delay in seconds.
-//         "acc_delay": "100",					// Optional - defaults to 100. Time in milliseconds. Delay to prevent communication collisions for multiple UPS accessories.
-//         "low_batt_threshold": "40",				// Optional - defaults to 40%. Low Battery Threshold.
-//         "polling": "120"					// Optional - defaults to OFF or 0. Time in seconds.
-//     }
-// ],
-//
-//
+const util = require('util');
+const EventEmitter = require('events').EventEmitter;
+const Nut = require('node-nut');
+const pEvent = require('p-event');
+const _ = require('lodash');
 
-var Nut = require("node-nut");
-var _ = require("underscore");
-var sleep = require("system-sleep")
-var titleCase = require('title-case');
-var pNut, connected, started;
+let Service;
+let Characteristic;
 
-function NutPlatform(log, config){
-	this.config = config;
-	this.host = config["host"] || 'localhost';
-	this.port = config["port"] || '3493';
-	this.name = config["name"];
-	this.nutListTimeout = parseInt(config["search_time_delay"] || '1');
-	this.nutListTimeout *= 1000;
-	this.accDelay = parseInt(config["acc_delay"] || '100');
-	this.nutPolling = parseInt(config["polling"] || '0');
-	this.lowBattThreshold = config["low_batt_threshold"] || '40';
+
+/**
+ * Platform "Nut"
+ */
+
+function NutPlatform(log, config) {
+
 	this.log = log;
-	this.log("Starting Nut Platform on %s:%s. Polling (seconds): %s", this.host, this.port, (this.nutPolling == '0') ? 'OFF' : this.nutPolling);
-	this.nutPolling *=1000;
-	this.initialized = false;
-	var nutAccessories, upsInfo;
-	connected = false;
-	started = true;
+	this.config = config;
 
-	pNut = new Nut(this.port, this.host);
+	this.host = config['host'] || 'localhost';
+	this.port = config['port'] || 3493;
 
-	pNut.on('ready', this.eventReady.bind(this));
-	pNut.on('close', this.eventClose.bind(this));
-	pNut.on('error', this.eventError.bind(this));
+	this.nut = new Nut(this.port, this.host);
 
-	pNut.start();
+	this.nut.on('ready', this.nutReady.bind(this));
+	this.nut.on('close', this.nutClose.bind(this));
+	this.nut.on('error', this.nutError.bind(this));
+
+	// this will be populated in the nutReady event handler
+	this.upsInfo = {};
+
+	// this is true if we last received a nutReady (and not a nutClose) event
+	this.nutConnected = false;
+
+	EventEmitter.call(this);
 }
 
-NutPlatform.prototype = {
-	accessories: function(callback) {
-		var that = this;
-		var foundAccessories = [];
-		var acc, accName, accFriendlyName;
-		sleep(this.nutListTimeout); // Wait for initial nut startup.
-			accName = _.keys(that.nutAccessories);
-			accFriendlyName = _.values(that.nutAccessories);
-			for (acc in accName) {
-				var titleName;
-				that.log("Received Nut accessory #%s %s (%s) from the %s platform.", acc, accName[acc], ((!accFriendlyName[acc]) ? 'NullDesc' : accFriendlyName[acc]), that.name);
-				that.getInfo(accName[acc], function(err, upsInfo) {
-					if (!err) {
-						titleName = titleCase((accFriendlyName[acc] || accName[acc])); //Added in case ups.conf description is empty.
-						var accessory = new NutAccessory(that, accName[acc], titleName, upsInfo, acc);
-						that.initialized = true;
-						foundAccessories.push(accessory);
-					} else {
-						that.log.error("Nut Error: %s", err);
-					}
-				});
-				sleep(this.accDelay); // Delay on each new accessory call to avoid collisions.
+
+// Enable our platform to be an event emitter
+util.inherits(NutPlatform, EventEmitter);
+
+
+NutPlatform.prototype.accessories = function(callback) {
+
+	// Listen for an initialized event emitted from ourselves, then setup a UPS accessory and finally perform callback
+	(async () => {
+		try {
+			await pEvent(this, 'initialized');
+			this.log('platform initialized event');
+
+			// Create an accessory and callback
+			if (_.isEmpty(this.upsInfo)) {
+				this.log('Initialised event received, but no upsInfo - no accessory created!');
+				callback([]);
 			}
-			callback(foundAccessories);
-	},
-
-	eventReady: function() {
-		var that = this;
-		if (!that.initialized) {
-			connected = true;
-			this.log.debug("Nut eventReady received. Initializing and getting list of Nut accessories.");
-			pNut.GetUPSList(function(upslist, err) {
-				if (err) {
-					that.log.error;('Nut ERROR initializing: ' + err);
-				}
-				else {
-					that.nutAccessories = upslist;
-				}
-			});
-		} else {
-			connected = true;
-			this.log.debug("Nut eventReady received. Successful reconnect after disconnection.");
+			else {
+				this.nutAccessory = new NutAccessory(this, this.log, this.config, this.upsInfo);
+				callback([ this.nutAccessory ]);
+			}
 		}
-	},
+		catch (error) {
+			this.log(`platform error event - no accessory created! - ${error}`);
 
-	eventClose: function() {
-		var that = this;
-		connected = false;
-		started = false;
-		this.log.debug("Nut eventDisconnect occured.");
-	},
-
-	eventError: function(error) {
-		this.log.error("Nut eventError received - %s.", error);
-	},
-
-	getInfo: function(upsName, callback) {
-		var that = this;
-		if (connected) {
-					pNut.GetUPSVars(upsName, function(upsvars, err) {
-						if (err) {
-							callback("ERROR getting UPSVars: " + err, null);
-						} else {
-							callback(null, upsvars);
-						}
-					});
-		} else {
-			callback("ERROR not connected to Nut", null);
+			// Callback with no accessories
+			callback([]);
 		}
+	})();
+
+	// Start nut...
+	// This will eventually emit the nut ready event..
+	// which will in turn cause the platform to emit the initialized event...
+	// which we are awaiting above
+	this.nut.start();
+
+	this.log(`Started nut client for ${this.host}:${this.port}`);
+};
+
+
+NutPlatform.prototype.pollNut = function(callback) {
+
+	if (!this.nutConnected) {
+		this.log('Cannot poll nut as currently not connected, restarting and waiting for a nutReady event...');
+
+		this.nut.start();
+		this.log(`Re-started nut client for ${this.host}:${this.port}`);
+
+		callback();
+		return;
 	}
-}
 
-function NutAccessory(platform, accessory, accessoryFriendly, accessoryVars, accCount) {
-	this.nutName = accessory;
-	this.name = accessoryFriendly;
-	this.accVars = accessoryVars;
-	this.platform = platform;
-	this.log = this.platform.log;
-	this.lowBattThreshold = this.platform.lowBattThreshold;
-	this.delay = (parseInt(accCount)+1)*this.platform.accDelay;
-	this.log.debug("Nut Platform polling delay is: %s, Accessory %s delay is: %s", this.platform.nutPolling/1000, this.name, this.delay/1000);
-	if (this.platform.nutPolling > 0) {
-		var that = this;
-		setTimeout(function() {
-			that.log.debug('Nut Service Polling begin for %s...', that.name);
-			that.servicePolling();
-		}, this.platform.nutPolling);
-	};
-}
+	const that = this;
 
-NutAccessory.prototype = {
+	this.nut.GetUPSVars(this.upsKey, function(upsVars, err) {
 
-	identify: function(callback){
-		this.log.debug("Nut Identify requested for %s!", this.name);
-		callback();
-	},
-
-	getCheck: function(callback){
-		var that = this;
-		this.log.debug('Nut checking connection to Nut Server for %s.', this.name);
-		if (connected) {
-			this.log.debug('Nut connection to Nut Server Successful.');
-			this.log.debug('Nut refreshing delay %s for %s', this.delay/1000, this.name);
-			sleep(parseInt(this.delay));
-			that.getVars(function(callback) {}.bind(this));
-		} else {
-			if (!started) {
-				started = true;
-				this.log.debug('Nut not connected, attempting reconnection.');
-				pNut.start();
-				sleep(this.platform.nutListTimeout);
-			} else {
-				this.log.debug('Nut not connected, waiting on prior reconnection attempt...');
-			}
-			this.log.debug('Nut refreshing delay %s for %s',this.delay/1000, this.name);
-			sleep(parseInt(this.delay));
-			if (connected) {
-				that.getVars(function (callback) {}.bind(that));
-			} else {
-				that.log.error('Nut unable to reconnect!');
-				that.service.setCharacteristic(Characteristic.StatusFault,1);
-			  }
+		if (err) {
+			callback(err);
 		}
-	callback();
-	},
+		else {
+			// parse results and setup upsInfo
+			Object.entries(upsVars).forEach(([key, value]) => {
+				that.upsInfo[key] = value;
+			});
 
-    getVars: function(callback){
-			var that = this;
-			this.log.debug('Nut now getting vars for %s.', this.name);
-			if (connected) {
-				this.platform.getInfo(this.nutName, function(err, upsInfo) {
-					if (!err) {
-						this.log.debug('Nut now updating vars for %s.', this.name);
-						that.serviceInfo.setCharacteristic(Characteristic.Manufacturer, upsInfo["device.mfr"] || upsInfo["ups.vendorid"] || 'No Manufacturer');
-						that.serviceInfo.setCharacteristic(Characteristic.SerialNumber, upsInfo["ups.serial"] || 'No Serial#')
-						that.serviceInfo.setCharacteristic(Characteristic.Model, upsInfo["device.model"] || upsInfo["ups.productid"] || 'No Model#');
+			callback();
+		}
+	});
+};
 
-						that.service.setCharacteristic(Characteristic.StatusFault,0);
-						that.serviceBatt.setCharacteristic(Characteristic.BatteryLevel,parseFloat(upsInfo["battery.charge"]));
-						that.service.setCharacteristic(EnterpriseTypes.InputVoltageAC, parseFloat(upsInfo["input.voltage"]));
-						that.service.setCharacteristic(EnterpriseTypes.OutputVoltageAC, parseFloat(upsInfo["output.voltage"]));
-						that.service.setCharacteristic(EnterpriseTypes.BatteryVoltageDC, parseFloat(upsInfo["battery.voltage"]));
-						that.service.setCharacteristic(EnterpriseTypes.UPSLoadPercent, parseInt(upsInfo["ups.load"]));
-						that.service.setCharacteristic(Characteristic.CurrentTemperature, parseFloat(upsInfo["ups.temperature"]));
 
-						if (parseInt(upsInfo["battery.charge"]) < parseInt(that.lowBattThreshold)) {
-							that.serviceBatt.setCharacteristic(Characteristic.StatusLowBattery,1);
-						} else {
-							that.serviceBatt.setCharacteristic(Characteristic.StatusLowBattery,0);
-						}
-						if (upsInfo["ups.status"] == "OL CHRG") {
-							that.serviceBatt.setCharacteristic(Characteristic.ChargingState,1);
-						} else if (upsInfo["ups.status"] == "OB DISCHRG") {
-							that.serviceBatt.setCharacteristic(Characteristic.ChargingState,2);
-						} else {
-							that.serviceBatt.setCharacteristic(Characteristic.ChargingState,0);
-						}
-						if (parseInt(upsInfo["ups.load"]) > 0) {
-							that.service.setCharacteristic(Characteristic.StatusActive,1);
-						} else {
-							that.service.setCharacteristic(Characteristic.StatusActive,0);
-						}
-						if (upsInfo["ups.status"].startsWith("OB")) {
-							that.service.setCharacteristic(Characteristic.ContactSensorState,1);
-						} else {
-							that.service.setCharacteristic(Characteristic.ContactSensorState,0);
-						}
-					} else {
-						that.log.error("Nut Error: %s", err);
-						that.service.setCharacteristic(Characteristic.StatusFault,1);
-					}
-				}.bind(this));
-			} else {
-				this.log.error('Nut request failed. Not connected.');
-				that.service.setCharacteristic(Characteristic.StatusFault,1);
+NutPlatform.prototype.nutReady = function() {
+	this.log('nutReady');
+
+	this.nutConnected = true;
+
+	if (!_.isEmpty(this.upsInfo)) {
+		this.log('nutReady: already initialized, must be a reconnect...');
+		return;
+	}
+
+	const that = this;
+
+	this.nut.GetUPSList((upsList, err) => {
+		if (err) {
+			that.log(`error calling GetUPSList: ${err}`);
+			// emit error event
+			that.emit('error', err);
+			return;
+		}
+
+		const entries = Object.entries(upsList);
+
+		if (entries.length === 0) {
+			this.log('no UPS returned from GetUPSList!');
+			that.emit('initialized');
+			return;
+		}
+
+		if (entries.length > 1) {
+			this.log('More than one UPS returned from GetUPSList, only the first will be added as an accessory!');
+		}
+
+		// Save the first UPS key and name as used for future nut requests and to name accessory
+		that.upsKey = entries[0][0];
+		that.upsName = entries[0][1];
+
+		// Get the ups vars and request callback so we can emit initialized event
+		that.pollNut((err) => {
+
+			if (err) {
+				that.log(`error calling pollNut: ${err}`);
+				// emit error event
+				that.emit('error', err);
+				return;
 			}
-		callback();
-	},
 
-	servicePolling: function(){
-		var that = this;
-		this.log.debug('Nut is Polling for %s with polling delay of %s seconds.', this.name, that.platform.nutPolling/1000);
-		this.getCheck(function (callback) {
-			setTimeout(function() {
-				that.servicePolling();
-			}, that.platform.nutPolling);
+			// finally emit initialized event
+			that.emit('initialized');
 		});
-	},
+	});
+};
 
-	getServices: function() {
-		var that = this;
-		var services = []
-		this.service = new Service.ContactSensor(this.name);
-		this.service.getCharacteristic(Characteristic.ContactSensorState) // Based on ups.status
-			.on('get', this.getCheck.bind(this));;
-		this.service.addCharacteristic(Characteristic.StatusActive); // Has load (being used)
-		this.service.addCharacteristic(Characteristic.StatusFault); // Used if unable to connect to Nut Server
-		this.service.addCharacteristic(Characteristic.CurrentTemperature);
-		this.service.addCharacteristic(EnterpriseTypes.InputVoltageAC);
-		this.service.addCharacteristic(EnterpriseTypes.OutputVoltageAC);
-		this.service.addCharacteristic(EnterpriseTypes.BatteryVoltageDC);
-		this.service.addCharacteristic(EnterpriseTypes.UPSLoadPercent);
-		services.push(this.service);
 
-		this.serviceInfo = new Service.AccessoryInformation();
-		this.serviceInfo.setCharacteristic(Characteristic.Manufacturer, this.accVars["device.mfr"] || this.accVars["ups.vendorid"] || 'No Manufacturer')
-			.setCharacteristic(Characteristic.Name, this.name)
-			.setCharacteristic(Characteristic.SerialNumber, this.accVars["ups.serial"] || 'No Serial#')
-			.setCharacteristic(Characteristic.FirmwareRevision, this.accVars["ups.firmware"] || 'No Data')
-			.setCharacteristic(Characteristic.Model, this.accVars["device.model"].trim() || this.accVars["ups.productid"] || 'No Model#');
-		services.push(this.serviceInfo);
+NutPlatform.prototype.nutClose = function() {
+	this.log('nutClose');
 
-		this.serviceBatt = new Service.BatteryService();
-		this.serviceBatt.setCharacteristic(Characteristic.BatteryLevel, this.accVars["battery.charge"])
-			.setCharacteristic(Characteristic.Name, this.name)
-			.setCharacteristic(Characteristic.ChargingState, 0)
-			.setCharacteristic(Characteristic.StatusLowBattery, 0);
-		services.push(this.serviceBatt);
+	this.nutConnected = false;
+};
 
-		return services;
-    }
+
+NutPlatform.prototype.nutError = function(error) {
+	this.log(`nutError: ${error}`);
+};
+
+
+/**
+ * Accessory "Nut"
+ */
+
+function NutAccessory(platform, log, config, upsInfo) {
+
+	// maintain a reference to the platform so we can monitor the nutConnected state and poll nut
+	this.platform = platform;
+
+	this.log = log;
+
+	this.lowBattThreshold = config['low_batt_threshold'] || 40;
+ 	this.pollInterval = config['poll_interval'] || 60;
+
+	// this.nutName = accessory;
+	this.name = platform.upsName;
+
+	this.upsInfo = upsInfo;
+
+	// Start polling and updating state
+	this.pollNutAndUpdateState();
 }
 
-module.exports.accessory = NutAccessory;
-module.exports.platform = NutPlatform;
 
-var Service, Characteristic, EnterpriseTypes;
+NutAccessory.prototype.pollNutAndUpdateState = function() {
+	this.log('pollNutAndUpdateState');
+
+	const that = this;
+	this.platform.pollNut((err) => {
+
+		if (err) {
+			that.log(`error calling pollNut: ${err}`);
+		}
+		else {
+			that.updateState();
+		}
+		const pollTimeout = setTimeout(function() {
+			that.pollNutAndUpdateState();
+		}, that.pollInterval * 1000);
+
+		// Don't prevent homebridge shutdown
+		pollTimeout.unref();
+	});
+};
+
+
+NutAccessory.prototype.getState = function(callback) {
+	this.log('getState');
+
+	const that = this;
+	this.platform.pollNut((err) => {
+
+		if (err) {
+			that.log(`error calling pollNut, probably an ongoing request: ${err}`);
+		}
+		else {
+			that.updateState();
+		}
+		callback();
+	});
+};
+
+
+NutAccessory.prototype.updateState = function() {
+	this.log('updateState');
+
+	if (!this.platform.nutConnected) {
+		this.log('nutConnected is false, setting StatusFault');
+		this.contactSensorService.setCharacteristic(Characteristic.StatusFault, 1);
+		return;
+	}
+
+	this.contactSensorService.setCharacteristic(Characteristic.StatusFault, 0);
+
+	if (this.upsInfo['ups.status'].startsWith('OB')) {
+		this.contactSensorService.setCharacteristic(Characteristic.ContactSensorState, 1);
+	}
+	else {
+		this.contactSensorService.setCharacteristic(Characteristic.ContactSensorState, 0);
+	}
+
+	if (parseInt(this.upsInfo['ups.load']) > 0) {
+		this.contactSensorService.setCharacteristic(Characteristic.StatusActive, 1);
+	}
+	else {
+		this.contactSensorService.setCharacteristic(Characteristic.StatusActive, 0);
+	}
+
+	this.contactSensorService.setCharacteristic(Characteristic.CurrentTemperature, parseFloat(this.upsInfo['ups.temperature']));
+
+	this.batteryService.setCharacteristic(Characteristic.BatteryLevel,parseFloat(this.upsInfo['battery.charge']));
+
+	if (this.upsInfo['ups.status'] === 'OL CHRG') {
+		this.batteryService.setCharacteristic(Characteristic.ChargingState, 1);
+	}
+	else if (this.upsInfo['ups.status'] === 'OB DISCHRG') {
+		this.batteryService.setCharacteristic(Characteristic.ChargingState, 2);
+	}
+	else {
+		this.batteryService.setCharacteristic(Characteristic.ChargingState, 0);
+	}
+
+	if (parseInt(this.upsInfo['battery.charge']) < parseInt(this.lowBattThreshold)) {
+		this.batteryService.setCharacteristic(Characteristic.StatusLowBattery, 1);
+	}
+	else {
+		this.batteryService.setCharacteristic(Characteristic.StatusLowBattery, 0);
+	}
+};
+
+
+NutAccessory.prototype.getServices = function() {
+
+	const contactSensorService = new Service.ContactSensor(this.name);
+
+	// if UPS Status starts with 'OB'
+	contactSensorService.getCharacteristic(Characteristic.ContactSensorState)
+		.on('get', this.getState.bind(this));
+
+	// if UPS Load is > 0
+	contactSensorService.addCharacteristic(Characteristic.StatusActive);
+
+	// if NUT is not reachable
+	contactSensorService.addCharacteristic(Characteristic.StatusFault);
+
+	contactSensorService.addCharacteristic(Characteristic.CurrentTemperature);
+
+	this.contactSensorService = contactSensorService;
+
+	const batteryService = new Service.BatteryService();
+	batteryService.setCharacteristic(Characteristic.Name, this.name);
+	batteryService.setCharacteristic(Characteristic.BatteryLevel, this.upsInfo['battery.charge']);
+	batteryService.setCharacteristic(Characteristic.ChargingState, 0);
+	batteryService.setCharacteristic(Characteristic.StatusLowBattery, 0);
+
+	this.batteryService = batteryService;
+
+	const accessoryInformationService = new Service.AccessoryInformation();
+
+	accessoryInformationService.setCharacteristic(Characteristic.Manufacturer,
+		this.upsInfo['device.mfr'] || this.upsInfo['ups.vendorid'] || 'No Manufacturer');
+	accessoryInformationService.setCharacteristic(Characteristic.Name, this.name);
+	accessoryInformationService.setCharacteristic(Characteristic.SerialNumber, this.upsInfo['ups.serial'] || 'No Serial');
+	accessoryInformationService.setCharacteristic(Characteristic.FirmwareRevision, this.upsInfo['ups.firmware'] || 'No Data');
+	accessoryInformationService.setCharacteristic(Characteristic.Model,
+		this.upsInfo['device.model'].trim() || this.upsInfo['ups.productid'] || 'No Model');
+
+	return [
+		accessoryInformationService,
+		contactSensorService,
+		batteryService
+	];
+};
+
 
 module.exports = function(homebridge) {
+
   Service = homebridge.hap.Service;
   Characteristic = homebridge.hap.Characteristic;
-  EnterpriseTypes = require('./types.js')(homebridge);
 
-  homebridge.registerAccessory("homebridge-nut-accessory", "NutAccessory", NutAccessory);
-  homebridge.registerPlatform("homebridge-nut", "Nut", NutPlatform);
+  homebridge.registerPlatform('homebridge-nut', 'Nut', NutPlatform);
 };
