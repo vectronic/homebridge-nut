@@ -1,5 +1,5 @@
 {
-  "name": "@vectronic/homebridge-nut",
+  "name": "homebridge-nut",
   "version": "1.1.0",
   "description": "A NUT (Network UPS Tools) Plugin for Homebridge leveraging node-nut.",
   "main": "index.js",
