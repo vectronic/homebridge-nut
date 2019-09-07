@@ -199,7 +199,6 @@ function NutAccessory(platform, log, config, upsInfo) {
 
 
 NutAccessory.prototype.pollNutAndUpdateState = function() {
-	this.log('pollNutAndUpdateState');
 
 	const that = this;
 	this.platform.pollNut((err) => {
@@ -221,7 +220,6 @@ NutAccessory.prototype.pollNutAndUpdateState = function() {
 
 
 NutAccessory.prototype.getState = function(callback) {
-	this.log('getState');
 
 	const that = this;
 	this.platform.pollNut((err) => {
@@ -238,7 +236,6 @@ NutAccessory.prototype.getState = function(callback) {
 
 
 NutAccessory.prototype.updateState = function() {
-	this.log('updateState');
 
 	if (!this.platform.nutConnected) {
 		this.log('nutConnected is false, setting StatusFault');
