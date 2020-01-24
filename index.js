@@ -369,7 +369,7 @@ module.exports = function(homebridge) {
 		Characteristic.call(this, 'Consumption Level', upsPowerConsumptionLevelUuid);
 		this.setProps({
 			format: Characteristic.Formats.UINT16,
-			unit: "PERCENTAGE",
+			unit: "%",
 			maxValue: 100,
 			minValue: 0,
 			minStep: 1,
