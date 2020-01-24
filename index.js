@@ -360,7 +360,7 @@ module.exports = function(homebridge) {
 		});
 		this.value = this.getDefaultValue();
 	};
-	inherits(Characteristic.UpsPowerConsumption, Characteristic);
+	util.inherits(Characteristic.UpsPowerConsumption, Characteristic);
 	Characteristic.UpsPowerConsumption.UUID = upsPowerConsumptionUuid;
 
 
@@ -377,7 +377,7 @@ module.exports = function(homebridge) {
 		});
 		this.value = this.getDefaultValue();
 	};
-	inherits(Characteristic.UpsPowerConsumptionLevel, Characteristic);
+	util.inherits(Characteristic.UpsPowerConsumptionLevel, Characteristic);
 	Characteristic.UpsPowerConsumptionLevel.UUID = upsPowerConsumptionLevelUuid;
 
 
