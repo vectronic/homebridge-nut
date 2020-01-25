@@ -259,14 +259,17 @@ NutAccessory.prototype.updateState = function() {
 		this.contactSensorService.setCharacteristic(Characteristic.StatusActive, 0);
 	}
 
-	this.contactSensorService.setCharacteristic(Characteristic.CurrentTemperature, parseFloat(this.upsInfo['ups.temperature']));
+	if('ups.temperature' in this.upsInfo) {
+		this.contactSensorService.setCharacteristic(Characteristic.CurrentTemperature, parseFloat(this.upsInfo['ups.temperature']));
+	}
 
 	this.batteryService.setCharacteristic(Characteristic.BatteryLevel,parseFloat(this.upsInfo['battery.charge']));
 
-	if (this.upsInfo['ups.status'] === 'OL CHRG') {
+	var upsStatus = this.upsInfo['ups.status'];
+	if (upsStatus === 'OL CHRG' || upsStatus === 'OL') {
 		this.batteryService.setCharacteristic(Characteristic.ChargingState, 1);
 	}
-	else if (this.upsInfo['ups.status'] === 'OB DISCHRG') {
+	else if (upsStatus === 'OB DISCHRG' || upsStatus === 'OB') {
 		this.batteryService.setCharacteristic(Characteristic.ChargingState, 2);
 	}
 	else {
@@ -278,6 +281,16 @@ NutAccessory.prototype.updateState = function() {
 	}
 	else {
 		this.batteryService.setCharacteristic(Characteristic.StatusLowBattery, 0);
+	}
+
+	if('ups.load' in this.upsInfo && 'ups.power.nominal' in this.upsInfo) {
+		var loadPercent = parseInt(this.upsInfo['ups.load']);
+		var nominalPower = parseInt(this.upsInfo['ups.power.nominal']);
+		var loadWatt = loadPercent*0.01*nominalPower*0.8;
+		//this.contactSensorService.setCharacteristic(Characteristic.????, );
+		//Apple does not provide any characteristic for power measurements. Use a custom one from https://github.com/Samfox2/homebridge-domotiga/blob/master/index.js
+		this.contactSensorService.setCharacteristic(Characteristic.UpsPowerConsumption, Math.round(loadWatt));
+		this.contactSensorService.setCharacteristic(Characteristic.UpsPowerConsumptionLevel, loadPercent);
 	}
 };
 
@@ -292,11 +305,11 @@ NutAccessory.prototype.getServices = function() {
 
 	// if UPS Load is > 0
 	contactSensorService.addCharacteristic(Characteristic.StatusActive);
-
 	// if NUT is not reachable
 	contactSensorService.addCharacteristic(Characteristic.StatusFault);
-
 	contactSensorService.addCharacteristic(Characteristic.CurrentTemperature);
+	contactSensorService.addCharacteristic(Characteristic.UpsPowerConsumption);
+	contactSensorService.addCharacteristic(Characteristic.UpsPowerConsumptionLevel);
 
 	this.contactSensorService = contactSensorService;
 
@@ -328,8 +341,48 @@ NutAccessory.prototype.getServices = function() {
 
 module.exports = function(homebridge) {
 
-  Service = homebridge.hap.Service;
-  Characteristic = homebridge.hap.Characteristic;
+	Service = homebridge.hap.Service;
+	Characteristic = homebridge.hap.Characteristic;
 
-  homebridge.registerPlatform('homebridge-nut', 'Nut', NutPlatform);
+	//
+	// Custom characteristics
+	//
+	var upsPowerConsumptionUuid = '0C94EF35-4F4D-4B2F-AA64-249998724F0B';
+	Characteristic.UpsPowerConsumption = function () {
+		Characteristic.call(this, 'Consumption', upsPowerConsumptionUuid);
+		this.setProps({
+			format: Characteristic.Formats.UINT16,
+			unit: "watts",
+			maxValue: 1000000000,
+			minValue: 0,
+			minStep: 1,
+			perms: [Characteristic.Perms.READ, Characteristic.Perms.NOTIFY]
+		});
+		this.value = this.getDefaultValue();
+	};
+	util.inherits(Characteristic.UpsPowerConsumption, Characteristic);
+	Characteristic.UpsPowerConsumption.UUID = upsPowerConsumptionUuid;
+
+
+	var upsPowerConsumptionLevelUuid = '0C94EF36-4F4D-4B2F-AA64-249998724F0B';
+	Characteristic.UpsPowerConsumptionLevel = function () {
+		Characteristic.call(this, 'Consumption Level', upsPowerConsumptionLevelUuid);
+		this.setProps({
+			format: Characteristic.Formats.UINT16,
+			unit: "%",
+			maxValue: 100,
+			minValue: 0,
+			minStep: 1,
+			perms: [Characteristic.Perms.READ, Characteristic.Perms.NOTIFY]
+		});
+		this.value = this.getDefaultValue();
+	};
+	util.inherits(Characteristic.UpsPowerConsumptionLevel, Characteristic);
+	Characteristic.UpsPowerConsumptionLevel.UUID = upsPowerConsumptionLevelUuid;
+
+
+	//
+	// Register
+	//
+	homebridge.registerPlatform('homebridge-nut', 'Nut', NutPlatform);
 };
