@@ -367,7 +367,7 @@ module.exports = function (homebridge) {
             minStep: 1,
             perms: [Characteristic.Perms.READ, Characteristic.Perms.NOTIFY]
         });
-        this.value = this.getDefaultValue();
+        this.value = 0;
     };
     util.inherits(Characteristic.UpsPowerConsumption, Characteristic);
     Characteristic.UpsPowerConsumption.UUID = upsPowerConsumptionUuid;
@@ -383,7 +383,7 @@ module.exports = function (homebridge) {
             minStep: 1,
             perms: [Characteristic.Perms.READ, Characteristic.Perms.NOTIFY]
         });
-        this.value = this.getDefaultValue();
+        this.value = 0;
     };
     util.inherits(Characteristic.UpsPowerConsumptionLevel, Characteristic);
     Characteristic.UpsPowerConsumptionLevel.UUID = upsPowerConsumptionLevelUuid;
