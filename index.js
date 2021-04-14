@@ -255,7 +255,7 @@ NutAccessory.prototype.updateState = function () {
 
     if ('ups.temperature' in this.upsInfo) {
         const temp = parseFloat(this.upsInfo['ups.temperature']);
-        if (!isNaN(temp)) {
+        if ((temp !== undefined) && !isNaN(temp)) {
             this.contactSensorService.setCharacteristic(Characteristic.CurrentTemperature, temp);
         }
     }
@@ -287,10 +287,10 @@ NutAccessory.prototype.updateState = function () {
         const nominalPower = parseInt(this.upsInfo['ups.power.nominal']);
         const loadWatt = loadPercent * 0.01 * nominalPower * 0.8;
 
-        if (!isNaN(loadWatt)) {
+        if ((loadWatt !== undefined) && !isNaN(loadWatt)) {
             this.contactSensorService.setCharacteristic(Characteristic.UpsPowerConsumption, Math.round(loadWatt));
         }
-        if (!isNaN(loadPercent)) {
+        if ((loadPercent !== undefined) && !isNaN(loadPercent)) {
             this.contactSensorService.setCharacteristic(Characteristic.UpsPowerConsumptionLevel, loadPercent);
         }
     }
