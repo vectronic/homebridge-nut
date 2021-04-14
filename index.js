@@ -261,7 +261,7 @@ NutAccessory.prototype.updateState = function () {
     }
 
     const charge = parseFloat(this.upsInfo['battery.charge'])
-    if (!isNaN(charge)) {
+    if ((charge !== undefined) && !isNaN(charge)) {
         this.batteryService.setCharacteristic(Characteristic.BatteryLevel, charge);
     }
 
@@ -276,7 +276,8 @@ NutAccessory.prototype.updateState = function () {
 
     const threshold = parseInt(this.lowBattThreshold);
 
-    if (!isNaN(charge) && !isNaN(threshold) && (charge < threshold)) {
+    if ((charge !== undefined) && !isNaN(charge) && (threshold !== undefined)
+        && !isNaN(threshold) && (charge < threshold)) {
         this.batteryService.setCharacteristic(Characteristic.StatusLowBattery, 1);
     } else {
         this.batteryService.setCharacteristic(Characteristic.StatusLowBattery, 0);
