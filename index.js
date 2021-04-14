@@ -302,10 +302,6 @@ NutAccessory.prototype.getServices = function () {
 
     const contactSensorService = new Service.ContactSensor(this.name);
 
-    // if UPS Status starts with 'OB'
-    contactSensorService.getCharacteristic(Characteristic.ContactSensorState)
-        .on('get', this.getState.bind(this));
-
     // if UPS Load is > 0
     contactSensorService.addCharacteristic(Characteristic.StatusActive);
 
@@ -323,6 +319,10 @@ NutAccessory.prototype.getServices = function () {
     contactSensorService.setCharacteristic(Characteristic.UpsPowerConsumptionLevel, 0);
 
     this.contactSensorService = contactSensorService;
+
+    // if UPS Status starts with 'OB'
+    this.contactSensorService.getCharacteristic(Characteristic.ContactSensorState)
+        .on('get', this.getState.bind(this));
 
     const batteryService = new Service.BatteryService();
     batteryService.setCharacteristic(Characteristic.Name, this.name);
