@@ -314,6 +314,10 @@ NutAccessory.prototype.getServices = function () {
     contactSensorService.addCharacteristic(Characteristic.UpsPowerConsumption);
     contactSensorService.addCharacteristic(Characteristic.UpsPowerConsumptionLevel);
 
+    contactSensorService.setCharacteristic(Characteristic.CurrentTemperature, 0);
+    contactSensorService.setCharacteristic(Characteristic.UpsPowerConsumption, 0);
+    contactSensorService.setCharacteristic(Characteristic.UpsPowerConsumptionLevel, 0);
+
     this.contactSensorService = contactSensorService;
 
     const batteryService = new Service.BatteryService();
