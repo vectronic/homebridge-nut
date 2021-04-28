@@ -1,5 +1,6 @@
 {
   "name": "@vectronic/homebridge-nut",
+  "displayName": "Homebridge NUT (Network UPS Tools)",
   "version": "1.1.0",
   "description": "A NUT (Network UPS Tools) Plugin for Homebridge leveraging node-nut.",
   "main": "index.js",
@@ -16,6 +17,7 @@
   "engines": {
     "homebridge": ">=0.4.46"
   },
+  "license": "ISC",
   "bugs": {
     "url": "https://github.com/vectronic/homebridge-nut/issues"
   },

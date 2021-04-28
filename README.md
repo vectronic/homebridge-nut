@@ -11,7 +11,7 @@ NOTE: This implementation only supports a single UPS as this is sufficient for m
 
 ## Installation
 1. Install Homebridge using: `npm install -g homebridge`
-1. Install this plugin using: `npm install -g git+https://github.com/vectronic/homebridge-nut.git`
+1. Install this plugin using: `npm install -g @vectronic/homebridge-nut`
 1. Update your configuration file. See a sample `config.json` snippet below.
 1. Ensure you have a NUT Client running somewhere.
 
