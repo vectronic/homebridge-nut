@@ -8,7 +8,7 @@ import {
     Service,
     Characteristic
 } from 'homebridge';
-import { Nut } from 'node-nut';
+import Nut from 'node-nut';
 import { isEmpty } from 'lodash';
 
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';

@@ -30,24 +30,18 @@ export class NutUPSAccessory {
     private contactSensorService: Service;
     private batteryService: Service;
 
-    private readonly key: string;
-    private readonly name: string;
-    
     constructor(
         private readonly platform: NutHomebridgePlatform,
         private readonly accessory: PlatformAccessory,
-        private readonly ups: Ups
+        private ups: Ups
     ) {
-        this.key = ups.key;
-        this.name = ups.name;
-
         // set accessory information
         this.accessory.getService(this.platform.Service.AccessoryInformation)!
             .setCharacteristic(this.platform.Characteristic.Manufacturer, ups.manufacturer)
             .setCharacteristic(this.platform.Characteristic.Model, ups.model)
             .setCharacteristic(this.platform.Characteristic.SerialNumber, ups.serialNumber)
             .setCharacteristic(this.platform.Characteristic.FirmwareRevision, ups.firmwareRevision)
-            .setCharacteristic(this.platform.Characteristic.Name, this.name);
+            .setCharacteristic(this.platform.Characteristic.Name, this.ups.name);
 
         // get the ContactSensor service if it exists, otherwise create a new ContactSensor service
         if (this.accessory.getService(this.platform.Service.ContactSensor)) {
@@ -64,12 +58,24 @@ export class NutUPSAccessory {
             // contactSensorService.addCharacteristic(Characteristic.UpsPowerConsumptionLevel);
         }
 
+        // set default initial state
+        this.contactSensorService.setCharacteristic(this.platform.Characteristic.StatusFault,
+            this.platform.Characteristic.StatusFault.NO_FAULT);
+        this.contactSensorService.setCharacteristic(this.platform.Characteristic.ContactSensorState,
+            this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED);
+        this.contactSensorService.setCharacteristic(this.platform.Characteristic.StatusActive, 0);
+        this.contactSensorService.setCharacteristic(this.platform.Characteristic.CurrentTemperature, 0);
+
+        // TODO: workout how to define new characteristics
+        // this.contactSensorService.setCharacteristic(this.platform.Characteristic.UpsPowerConsumption, 0);
+        // this.contactSensorService.setCharacteristic(this.platform.Characteristic.UpsPowerConsumptionLevel, 0);
+        
         // set the service name, this is what is displayed as the default name on the Home app
-        this.contactSensorService.setCharacteristic(this.platform.Characteristic.Name, this.name);
+        this.contactSensorService.setCharacteristic(this.platform.Characteristic.Name, this.ups.name);
 
         // register handler for the contact sensor on characteristic
         this.contactSensorService.getCharacteristic(this.platform.Characteristic.ContactSensorState)
-            .on('get', this.getState.bind(this));
+            .on('get', this.getOnBatteryState.bind(this));
 
         // get the Battery service if it exists, otherwise create a new Battery service
         if (this.accessory.getService(this.platform.Service.BatteryService)) {
@@ -78,32 +84,31 @@ export class NutUPSAccessory {
             this.batteryService = this.accessory.addService(this.platform.Service.BatteryService);
         }
 
+        // set default initial state
+        this.batteryService.setCharacteristic(this.platform.Characteristic.BatteryLevel, 0);
+        this.batteryService.setCharacteristic(this.platform.Characteristic.ChargingState,
+            this.platform.Characteristic.ChargingState.CHARGING);
+        this.batteryService.setCharacteristic(this.platform.Characteristic.StatusLowBattery,
+            this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL);
+
         // set the service name, this is what is displayed as the default name on the Home app
-        this.batteryService.setCharacteristic(this.platform.Characteristic.Name, this.name);
-
-        // register handler for the contact sensor state
-        this.contactSensorService.getCharacteristic(this.platform.Characteristic.ContactSensorState)
-            .on('get', this.getState.bind(this));
-
-        // register handler for the battery level
-        this.contactSensorService.getCharacteristic(this.platform.Characteristic.BatteryLevel)
-            .on('get', this.getState.bind(this));
+        this.batteryService.setCharacteristic(this.platform.Characteristic.Name, this.ups.name);
     }
 
     /**
      * Handle the "GET" requests from HomeKit
      * These are sent when HomeKit wants to know the current state of the accessory.
      */
-    getState(callback: CharacteristicGetCallback) {
+    getOnBatteryState(callback: CharacteristicGetCallback) {
 
-        this.platform.log.debug('getState()');
+        this.platform.log.debug('getOnBatteryState()');
 
-        this.platform.pollNutDevice(this.key, this.name)
+        this.platform.pollNutDevice(this.ups.key, this.ups.name)
             .catch((err) => {
-                this.platform.log.error(`error calling pollNutDevice, probably an ongoing request: ${err}`);
-                callback(err);
-            })
-            .finally(() => callback(null));
+                this.platform.log.debug(`error calling pollNutDevice, probably an ongoing request: ${err}`);
+            });
+
+        callback(null, this.ups.onBattery);
     }
 
     /**
@@ -112,6 +117,8 @@ export class NutUPSAccessory {
     update(ups: Ups) {
 
         this.platform.log.debug('update()');
+
+        this.ups = ups;
 
         this.contactSensorService.updateCharacteristic(this.platform.Characteristic.StatusFault,
             ups.fault ? 
@@ -141,6 +148,6 @@ export class NutUPSAccessory {
                 this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW :
                 this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL);
 
-        this.platform.log.debug(`pushed updated current UPS state to HomeKit for ${this.key}=${this.name}`);
+        this.platform.log.debug(`pushed updated current UPS state to HomeKit for ${this.ups.key}=${this.ups.name}`);
     }
 }
