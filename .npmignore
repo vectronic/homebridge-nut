@@ -1,7 +1,19 @@
-# Ignore compiled code
-dist
+# Ignore source code
+src
 
 # ------------- Defaults ------------- #
+
+# eslint
+.eslintrc
+
+# typescript
+tsconfig.json
+
+# vscode
+.vscode
+
+# nodemon
+nodemon.json
 
 # Logs
 logs
@@ -105,8 +117,6 @@ dist
 
 # DynamoDB Local files
 .dynamodb/
-
-.idea/
 
 # TernJS port file
 .tern-port

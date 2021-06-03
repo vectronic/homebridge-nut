@@ -1,0 +1,30 @@
+{
+  "pluginAlias": "Nut",
+  "pluginType": "platform",
+  "singular": false,
+  "schema": {
+    "type": "object",
+    "properties": {
+      "host": {
+        "type": "string",
+        "description": "IP or hostname for the Nut Client.",
+        "default":  "localhost"
+      },
+      "port": {
+        "type": "number",
+        "description": "The port for the Nut Client.",
+        "default":  3493
+      },
+      "low_batt_threshold": {
+        "type": "number",
+        "description": "The battery level percentage at which to set the Low Battery Status to true.",
+        "default": 40
+      },
+      "poll_interval": {
+        "type": "number",
+        "description": "The UPS polling interval in seconds.",
+        "default": 60
+      }
+    }
+  }
+}
