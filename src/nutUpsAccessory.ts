@@ -97,57 +97,37 @@ export class NutUPSAccessory {
 
         this.platform.log.debug('update()');
 
-        const oldUps = this.ups;
-
         this.ups = ups;
 
-        if (oldUps.fault !== ups.fault) {
-            this.contactSensorService.updateCharacteristic(this.platform.Characteristic.StatusFault,
-                ups.fault ?
-                    this.platform.Characteristic.StatusFault.GENERAL_FAULT :
-                    this.platform.Characteristic.StatusFault.NO_FAULT);
-        }
+        this.contactSensorService.updateCharacteristic(this.platform.Characteristic.StatusFault,
+            ups.fault ?
+                this.platform.Characteristic.StatusFault.GENERAL_FAULT :
+                this.platform.Characteristic.StatusFault.NO_FAULT);
 
-        if (oldUps.onBattery !== ups.onBattery) {
-            this.contactSensorService.updateCharacteristic(this.platform.Characteristic.ContactSensorState,
-                ups.onBattery ?
-                    this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED :
-                    this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED);
-        }
+        this.contactSensorService.updateCharacteristic(this.platform.Characteristic.ContactSensorState,
+            ups.onBattery ?
+                this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED :
+                this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED);
 
-        if (oldUps.active !== ups.active) {
-            this.contactSensorService.updateCharacteristic(this.platform.Characteristic.StatusActive,
-                ups.active ? 1 : 0);
-        }
+        this.contactSensorService.updateCharacteristic(this.platform.Characteristic.StatusActive,
+            ups.active ? 1 : 0);
 
-        if (oldUps.temperature !== ups.temperature) {
-            this.contactSensorService.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, ups.temperature);
-        }
+        this.contactSensorService.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, ups.temperature);
 
         // TODO: workout how to define new characteristics
-        // if (oldUps.powerConsumption !== ups.powerConsumption) {
-        //     this.contactSensorService.updateCharacteristic(this.platform.Characteristic.UpsPowerConsumption,
-        //     ups.powerConsumption);
-        // }
-        // if (oldUps.powerConsumptionLevel !== ups.powerConsumptionLevel) {
-        //     this.contactSensorService.updateCharacteristic(this.platform.Characteristic.UpsPowerConsumptionLevel,
-        //     ups.powerConsumptionLevel);
-        // }
+        // this.contactSensorService.updateCharacteristic(this.platform.Characteristic.UpsPowerConsumption,
+        // ups.powerConsumption);
+        // this.contactSensorService.updateCharacteristic(this.platform.Characteristic.UpsPowerConsumptionLevel,
+        // ups.powerConsumptionLevel);
 
-        if (oldUps.batteryLevel !== ups.batteryLevel) {
-            this.batteryService.updateCharacteristic(this.platform.Characteristic.BatteryLevel, ups.batteryLevel);
-        }
+        this.batteryService.updateCharacteristic(this.platform.Characteristic.BatteryLevel, ups.batteryLevel);
 
-        if (oldUps.chargingState !== ups.chargingState) {
-            this.batteryService.updateCharacteristic(this.platform.Characteristic.ChargingState, ups.chargingState);
-        }
+        this.batteryService.updateCharacteristic(this.platform.Characteristic.ChargingState, ups.chargingState);
 
-        if (oldUps.lowBattery !== ups.lowBattery) {
-            this.batteryService.updateCharacteristic(this.platform.Characteristic.StatusLowBattery,
-                ups.lowBattery ?
-                    this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW :
-                    this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL);
-        }
+        this.batteryService.updateCharacteristic(this.platform.Characteristic.StatusLowBattery,
+            ups.lowBattery ?
+                this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW :
+                this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL);
 
         this.platform.log.debug(`pushed changed UPS state to HomeKit for ${this.ups.key}=${this.ups.name}`);
     }
