@@ -258,7 +258,14 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
         
         const pollPromises: Array<Promise<void>> = [];
         entries.forEach((entry) => {
-            pollPromises.push(this.pollNutDevice(entry[0], entry[1]));
+            const key = entry[0];
+            let name = entry[1];
+
+            // If no description configured in nut to use as the name, use the key instead
+            if (name === 'Description unavailable') {
+                name = key;
+            }
+            pollPromises.push(this.pollNutDevice(key, name));
         });
 
         Promise.all(pollPromises)
