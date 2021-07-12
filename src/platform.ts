@@ -9,7 +9,6 @@ import {
     Characteristic
 } from 'homebridge';
 import Nut from 'node-nut';
-import { isEmpty } from 'lodash';
 
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import { NutUPSAccessory, Ups } from './nutUpsAccessory';
@@ -108,7 +107,7 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
         const uuid = this.api.hap.uuid.generate(ups.key);
 
         // see if an accessory with the same uuid has already been registered and restored from
-        // the cached devices we stored in the `configureAccessory method above
+        // the cached devices we stored in the `configureAccessory` method above
         const existingAccessory = this.existingAccessories.find(accessory => accessory.UUID === uuid);
 
         let nutUPSAccessory;
@@ -255,7 +254,7 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
             });
     }
 
-    pollNutDevices() {
+    async pollNutDevices() {
         this.log.debug('pollNutDevices()');
 
         this.nutPolling = true;
@@ -334,11 +333,10 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
         this.log.debug('startPolling()');
 
         // Periodically check if UPS devices should be polled
-        const pollInterval = setInterval(() => {
+        const pollInterval = setInterval(async () => {
 
             if (this.nutConnected && !this.nutPolling) {
-
-                this.pollNutDevices();
+                await this.pollNutDevices();
             }
         }, this.pollInterval * 1000);
 

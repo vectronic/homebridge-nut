@@ -1,7 +1,7 @@
 {
   "name": "@vectronic/homebridge-nut",
   "displayName": "Homebridge NUT (Network UPS Tools)",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "A NUT (Network UPS Tools) Plugin for Homebridge leveraging node-nut.",
   "main": "dist/index.js",
   "repository": {
@@ -29,8 +29,7 @@
     "homebridge": ">=1.1.0"
   },
   "dependencies": {
-    "node-nut": "^1.0.3",
-    "lodash": "^4.17.21"
+    "node-nut": "^1.0.3"
   },
   "devDependencies": {
     "@types/lodash": "^4.14.170",
