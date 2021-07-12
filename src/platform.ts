@@ -28,8 +28,14 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
     // this is used to have a reference to UPS accessory handles to update state after polling nut client
     private upsByUpsKey = new Map<string, NutUPSAccessory>();
 
-    // this is true if we last received a nutReady (and not a nutClose) event
+    // this is true if the nut client is currently attempting connection
+    private nutConnecting = false;
+
+    // this is true if the nut client is connected
     private nutConnected = false;
+
+    // this is true if the nut client is currently polling UPS devices
+    private nutPolling = false;
 
     // this will be populated with the list of devices returned from the nut client
     private upsList;
@@ -37,6 +43,7 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
     private readonly host: string;
     private readonly port: number;
     private readonly pollInterval: number;
+    private readonly connectInterval: number;
     private readonly lowBattThreshold: number;
 
     private nutClient;
@@ -51,13 +58,22 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
         this.host = config.host || 'localhost';
         this.port = config.port || 3493;
         this.pollInterval = config.poll_interval || 60;
+        this.connectInterval = config.connect_interval || 5;
         this.lowBattThreshold = config.low_batt_threshold || 40;
 
         // When this event is fired it means Homebridge has restored all cached accessories from disk.
         api.on(APIEvent.DID_FINISH_LAUNCHING, () => {
-            log.debug('executing didFinishLaunching callback');
+            log.debug('didFinishLaunching callback');
 
-            this.startNutClient();
+            this.nutClient = new Nut(this.port, this.host);
+
+            this.nutClient.on('ready', this.nutReady.bind(this));
+            this.nutClient.on('close', this.nutClose.bind(this));
+            this.nutClient.on('error', this.nutError.bind(this));
+
+            this.log.info(`created nut client for ${this.host}:${this.port}`);
+
+            this.startPolling();
         });
     }
 
@@ -242,16 +258,7 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
     pollNutDevices() {
         this.log.debug('pollNutDevices()');
 
-        if (!this.nutConnected) {
-            this.log.debug('Cannot poll devices as nut client not connected, restarting and waiting for a nutReady event...');
-
-            // (re-)start nut... this will eventually emit the nut ready event
-            this.nutClient.start();
-
-            this.log.info(`(re-)started nut client for ${this.host}:${this.port}`);
-
-            return;
-        }
+        this.nutPolling = true;
 
         // nut client is ready and connected so we can poll the status of UPS devices
         const entries = Object.entries(this.upsList);
@@ -273,28 +280,12 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
                 this.log.error(`error polling nut devices: ${err.message}`);
             })
             .finally(() => {
-                const pollTimeout = setTimeout(() => {
-                    this.pollNutDevices();
-                }, this.pollInterval * 1000);
-
-                // Don't prevent homebridge shutdown
-                pollTimeout.unref();
+                this.nutPolling = false;
             });
     }
 
     nutReady() {
         this.log.debug('nutReady()');
-
-        this.nutConnected = true;
-
-        if (!isEmpty(this.upsList)) {
-            this.log.info('nutReady() => already initialized, must be a reconnect...');
-
-            // now that we are re-connected start polling again
-            this.pollNutDevices();
-
-            return;
-        }
 
         new Promise<object>((resolve, reject) => {
             this.nutClient.GetUPSList((upsList, err) => {
@@ -318,16 +309,20 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
                 this.log.info(`nut client connected, reported devices: ${deviceList.join(',')}`);
             }
 
-            // now that we are connected we can start polling the UPS devices
-            this.pollNutDevices();
+            this.nutConnected = true;
+            this.nutConnecting = false;
         })
             .catch((err) => {
                 this.log.error(`error invoking GetUPSList on nut client: ${err.message}`);
+
+                this.nutConnecting = false;
             });
     }
 
     nutClose() {
         this.log.info('nutClose()');
+
+        this.nutConnecting = false;
         this.nutConnected = false;
     }
 
@@ -335,16 +330,34 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
         this.log.error(`nutError(${error})`);
     }
 
-    startNutClient() {
-        this.nutClient = new Nut(this.port, this.host);
+    startPolling() {
+        this.log.debug('startPolling()');
 
-        this.nutClient.on('ready', this.nutReady.bind(this));
-        this.nutClient.on('close', this.nutClose.bind(this));
-        this.nutClient.on('error', this.nutError.bind(this));
+        // Periodically check if UPS devices should be polled
+        const pollInterval = setInterval(() => {
 
-        // Start nut... this will eventually emit the nut ready event
-        this.nutClient.start();
+            if (this.nutConnected && !this.nutPolling) {
 
-        this.log.info(`started nut client for ${this.host}:${this.port}`);
+                this.pollNutDevices();
+            }
+        }, this.pollInterval * 1000);
+
+        // Don't prevent homebridge shutdown
+        pollInterval.unref();
+
+        // Periodically check if nut client should attempt to connect
+        const connectInterval = setInterval(() => {
+
+            if (!this.nutConnected && !this.nutConnecting) {
+
+                this.log.info(`starting nut client for ${this.host}:${this.port}`);
+
+                // Start nut... this will eventually emit the nut ready event
+                this.nutClient.start();
+            }
+        }, this.connectInterval * 1000);
+
+        // Don't prevent homebridge shutdown
+        connectInterval.unref();
     }
 }

@@ -24,6 +24,11 @@
         "type": "number",
         "description": "The UPS polling interval in seconds.",
         "default": 60
+      },
+      "connect_interval": {
+        "type": "number",
+        "description": "The NUT client connection attempt interval in seconds.",
+        "default": 5
       }
     }
   }
