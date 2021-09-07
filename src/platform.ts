@@ -129,7 +129,7 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
 
             // create the accessory handler for the newly created accessory
             nutUPSAccessory = new NutUPSAccessory(this, accessory, ups);
-            this.upsByUpsKey.set(ups.name, nutUPSAccessory);
+            this.upsByUpsKey.set(ups.key, nutUPSAccessory);
 
             // link the accessory to your platform
             this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
