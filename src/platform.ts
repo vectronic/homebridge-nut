@@ -308,78 +308,79 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
     nutReady() {
         this.log.debug('nutReady()');
 
-        new Promise<object>((resolve, reject) => {
-            if (this.username === undefined) {
-                resolve();
-                return;
-            }
-            this.nutClient.SetUsername(this.username, (err) => {
-                if (err) {
-                    reject(err);
+        return Promise.resolve()
+            .then(() => {
+                if (this.username === undefined) {
                     return;
                 }
-                resolve();
-                this.log.debug('nut client: username set success');
+                return new Promise<object>((resolve, reject) => {
+                    this.nutClient.SetUsername(this.username, (err) => {
+                        if (err) {
+                            reject(err);
+                            return;
+                        }
+                        resolve();
+                        this.log.debug('nut client: username set success');
+                    });
+                }).then(() => {
+                    // delay after username command
+                    return this.commandDelay();
+                });
             }).then(() => {
-                // delay after username command
-                return this.commandDelay();
-            });
-        }).then(() => {
-            return new Promise<object>((resolve, reject) => {
                 if (this.password === undefined) {
-                    resolve();
                     return;
                 }
-                this.nutClient.SetPassword(this.password, (err) => {
-                    if (err) {
-                        reject(err);
-                        return;
-                    }
-                    resolve();
-                    this.log.debug('nut client: password set success');
+                return new Promise<object>((resolve, reject) => {
+                    this.nutClient.SetPassword(this.password, (err) => {
+                        if (err) {
+                            reject(err);
+                            return;
+                        }
+                        resolve();
+                        this.log.debug('nut client: password set success');
+                    });
+                }).then(() => {
+                    // delay after password command
+                    return this.commandDelay();
                 });
             }).then(() => {
-                // delay after password command
-                return this.commandDelay();
-            });
-        }).then(() => {
-            
-            let upsList = [];
-
-            return new Promise<object>((resolve, reject) => {
                 
-                this.nutClient.GetUPSList((upsListResponse, err) => {
-                    if (err) {
-                        reject(err);
-                        return;
-                    }
-                    upsList = upsListResponse;
-                    resolve();
-                    this.log.debug('nut client: ups list success');
+                let upsList = [];
+    
+                return new Promise<object>((resolve, reject) => {
+                    
+                    this.nutClient.GetUPSList((upsListResponse, err) => {
+                        if (err) {
+                            reject(err);
+                            return;
+                        }
+                        upsList = upsListResponse;
+                        resolve();
+                        this.log.debug('nut client: ups list success');
+                    });
+                }).then(() => {
+                    // delay after get UPS List command
+                    return this.commandDelay();
+                }).then(() => {
+                    return upsList; 
                 });
-            }).then(() => {
-                // delay after get UPS List command
-                return this.commandDelay();
-            }).then(() => {
-                return upsList; 
-            });
-        }).then((upsList) => {
-
-            // store the list of UPS devices
-            this.upsList = upsList;
-
-            const entries = Object.entries(upsList);
-
-            if (entries.length === 0) {
-                this.log.warn('no UPS devices returned from GetUPSList!');
-            } else {
-                const deviceList = entries.map((entry) => `${entry[0]}=${entry[1]}`);
-                this.log.info(`nut client connected, reported devices: ${deviceList.join(',')}`);
-            }
-
-            this.nutConnected = true;
-            this.nutConnecting = false;
-        })
+            }).then((upsList) => {
+    
+                // store the list of UPS devices
+                this.upsList = upsList;
+    
+                const entries = Object.entries(upsList);
+    
+                if (entries.length === 0) {
+                    this.log.warn('no UPS devices returned from GetUPSList!');
+                } else {
+                    const deviceList = entries.map((entry) => `${entry[0]}=${entry[1]}`);
+                    this.log.info(`nut client connected, reported devices: ${deviceList.join(',')}`);
+                }
+    
+                this.nutConnected = true;
+                this.nutConnecting = false;
+            })
             .catch((err) => {
                 this.log.error(`error invoking GetUPSList on nut client: ${err.message}`);
 
