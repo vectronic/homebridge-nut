@@ -45,9 +45,14 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
     private readonly password: string;
     private readonly pollInterval: number;
     private readonly connectInterval: number;
+    private readonly commandInterval: number;
     private readonly lowBattThreshold: number;
 
     private nutClient;
+
+    async commandDelay() {
+        await new Promise((resolve) => setTimeout(resolve, this.commandInterval * 1000));
+    }
 
     constructor(
         public readonly log: Logger,
@@ -62,6 +67,7 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
         this.password = config.password;
         this.pollInterval = config.poll_interval || 60;
         this.connectInterval = config.connect_interval || 5;
+        this.commandInterval = config.command_interval || 1;
         this.lowBattThreshold = config.low_batt_threshold || 40;
         
         // When this event is fired it means Homebridge has restored all cached accessories from disk.
@@ -246,14 +252,24 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
         new Promise<void>((resolve, reject) => {
             this.nutClient.GetUPSVars(upsKey, (upsVars, err) => {
                 if (err) {
+                    this.log.debug('nut client: get UPS vars error');
                     reject(err);
                     return;
                 }
+                this.log.debug('nut client: get UPS vars success');
                 resolve(upsVars);
             });
         }).then((upsVars) => {
             const ups = this.parseUpsVars(upsKey, upsName, upsVars);
+
+            this.log.debug('parseUpsVars() success');
+
             this.createOrUpdateUps(ups);
+
+            this.log.debug('createOrUpdateUps() success');
+        }).then(() => {
+            // delay after get UPS Vars command
+            return this.commandDelay();
         })
             .catch((err) => {
                 this.log.error(`error invoking GetUPSVars on nut client for device ${upsKey}=${upsName}: ${err.message}`);
@@ -304,6 +320,9 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
                 }
                 resolve();
                 this.log.debug('nut client: username set success');
+            }).then(() => {
+                // delay after username command
+                return this.commandDelay();
             });
         }).then(() => {
             return new Promise<object>((resolve, reject) => {
@@ -319,17 +338,30 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
                     resolve();
                     this.log.debug('nut client: password set success');
                 });
+            }).then(() => {
+                // delay after password command
+                return this.commandDelay();
             });
         }).then(() => {
+            
+            let upsList = [];
+
             return new Promise<object>((resolve, reject) => {
-                this.nutClient.GetUPSList((upsList, err) => {
+                
+                this.nutClient.GetUPSList((upsListResponse, err) => {
                     if (err) {
                         reject(err);
                         return;
                     }
-                    resolve(upsList);
+                    upsList = upsListResponse;
+                    resolve();
                     this.log.debug('nut client: ups list success');
                 });
+            }).then(() => {
+                // delay after get UPS List command
+                return this.commandDelay();
+            }).then(() => {
+                return upsList; 
             });
         }).then((upsList) => {
 

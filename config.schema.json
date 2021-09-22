@@ -42,6 +42,11 @@
         "type": "number",
         "description": "The NUT client connection attempt interval in seconds.",
         "default": 5
+      },
+      "command_interval": {
+        "type": "number",
+        "description": "The NUT client delay interval between success requests in seconds.",
+        "default": 1
       }
     }
   }
