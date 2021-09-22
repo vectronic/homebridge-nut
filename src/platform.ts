@@ -164,7 +164,7 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
             onBattery = status.startsWith('OB');
         }
 
-        let temperature = -1;
+        let temperature = NaN;
         if ('ups.temperature' in upsInfo) {
             const temp = parseFloat(upsInfo['ups.temperature']);
             if ((temp !== undefined) && !isNaN(temp)) {
@@ -190,8 +190,8 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
             }
         }
 
-        let powerConsumption = 0;
-        let powerConsumptionLevel = 0;
+        let powerConsumption = NaN;
+        let powerConsumptionLevel = NaN;
         
         if (('ups.status' in upsInfo) && ('ups.power.nominal' in upsInfo)) {
             const loadPercent = parseInt(upsInfo['ups.load']);
@@ -206,10 +206,12 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
             }
         }
 
-        const manufacturer = upsInfo['device.mfr'] || upsInfo['ups.vendorid'] || 'No Manufacturer';
-        const model = upsInfo['device.model'] || upsInfo['ups.productid'] || 'No Model';
-        const serialNumber = upsInfo['ups.serial'] || 'No Serial';
-        const firmwareRevision = upsInfo['ups.firmware'] || 'No Data';
+        // NUT manual says ups variables mirror device variables and will eventually be removed,
+        // so prefer device values over ups values
+        const manufacturer = upsInfo['device.mfr'] || upsInfo['ups.mfr'] || 'Unknown';
+        const model = upsInfo['device.model'] || upsInfo['ups.model'] || 'Unknown';
+        const serialNumber = upsInfo['device.serial'] || upsInfo['ups.serial'] || 'Unknown';
+        const firmwareRevision = upsInfo['ups.firmware'] || 'Unknown';
 
         const ups: Ups = {
             key: upsKey,
