@@ -41,6 +41,8 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
 
     private readonly host: string;
     private readonly port: number;
+    private readonly username: string;
+    private readonly password: string;
     private readonly pollInterval: number;
     private readonly connectInterval: number;
     private readonly lowBattThreshold: number;
@@ -56,10 +58,12 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
 
         this.host = config.host || 'localhost';
         this.port = config.port || 3493;
+        this.username = config.username;
+        this.password = config.password;
         this.pollInterval = config.poll_interval || 60;
         this.connectInterval = config.connect_interval || 5;
         this.lowBattThreshold = config.low_batt_threshold || 40;
-
+        
         // When this event is fired it means Homebridge has restored all cached accessories from disk.
         api.on(APIEvent.DID_FINISH_LAUNCHING, () => {
             log.debug('didFinishLaunching callback');
@@ -289,12 +293,43 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
         this.log.debug('nutReady()');
 
         new Promise<object>((resolve, reject) => {
-            this.nutClient.GetUPSList((upsList, err) => {
+            if (this.username === undefined) {
+                resolve();
+                return;
+            }
+            this.nutClient.SetUsername(this.username, (err) => {
                 if (err) {
                     reject(err);
                     return;
                 }
-                resolve(upsList);
+                resolve();
+                this.log.debug('nut client: username set success');
+            });
+        }).then(() => {
+            return new Promise<object>((resolve, reject) => {
+                if (this.password === undefined) {
+                    resolve();
+                    return;
+                }
+                this.nutClient.SetPassword(this.password, (err) => {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+                    resolve();
+                    this.log.debug('nut client: password set success');
+                });
+            });
+        }).then(() => {
+            return new Promise<object>((resolve, reject) => {
+                this.nutClient.GetUPSList((upsList, err) => {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+                    resolve(upsList);
+                    this.log.debug('nut client: ups list success');
+                });
             });
         }).then((upsList) => {
 

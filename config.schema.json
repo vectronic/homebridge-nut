@@ -5,6 +5,11 @@
   "schema": {
     "type": "object",
     "properties": {
+      "name": {
+        "type": "string",
+        "description": "Name used for Homebridge logging.",
+        "default":  "Nut"
+      },
       "host": {
         "type": "string",
         "description": "IP or hostname for the Nut Client.",
@@ -14,6 +19,14 @@
         "type": "number",
         "description": "The port for the Nut Client.",
         "default":  3493
+      },
+      "username": {
+        "type": "string",
+        "description": "Username to use for Nut Client authentication."
+      },
+      "password": {
+        "type": "string",
+        "description": "Password to use for Nut Client authentication."
       },
       "low_batt_threshold": {
         "type": "number",

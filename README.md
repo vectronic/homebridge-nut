@@ -40,6 +40,8 @@ Example `config.json` entry:
     "name": "Nut",
     "host": "localhost",
     "port": 3493,
+    "username": "foo",
+    "password": "bar",
     "low_batt_threshold": 40,
     "poll_interval": 60,
     "connect_interval": 5
@@ -52,6 +54,8 @@ Where the following properties are all optional:
 * `name` is the name used for Homebridge logging. Default is `Nut`.
 * `host` is the IP or hostname for the Nut Client. Default is `localhost`.
 * `port` is the port for the Nut Client. Default is `3493`.
+* `username` is the username to use for Nut Client authentication.
+* `password` is the password to use for Nut Client authentication.
 * `low_batt_threshold` is the battery level percentage at which to set the Low Battery Status to true. Default is `40`.
 * `poll_interval` is the UPS polling interval in seconds. Default is `60`.
 * `connect_interval` is the NUT client connection attempt interval in seconds. Default is `5`.
