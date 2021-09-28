@@ -50,8 +50,8 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
 
     private nutClient;
 
-    async commandDelay() {
-        await new Promise((resolve) => setTimeout(resolve, this.commandInterval * 1000));
+    commandDelay(): Promise<void> {
+        return new Promise((resolve) => setTimeout(resolve, this.commandInterval * 1000));
     }
 
     constructor(
@@ -246,10 +246,10 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
         return ups;
     }
 
-    async pollNutDevice(upsKey, upsName) {
+    pollNutDevice(upsKey, upsName): Promise<void> {
         this.log.debug(`pollNutDevice(${upsKey}, ${upsName})`);
 
-        new Promise<void>((resolve, reject) => {
+        return new Promise<void>((resolve, reject) => {
             this.nutClient.GetUPSVars(upsKey, (upsVars, err) => {
                 if (err) {
                     this.log.debug('nut client: get UPS vars error');
@@ -284,7 +284,7 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
         // nut client is ready and connected so we can poll the status of UPS devices
         const entries = Object.entries(this.upsList);
         
-        const pollPromises: Array<Promise<void>> = [];
+        const pollTasks: Array<() => Promise<void>> = [];
         entries.forEach((entry) => {
             const key = entry[0];
             let name = entry[1];
@@ -293,17 +293,13 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
             if (name === 'Description unavailable') {
                 name = key;
             }
-            pollPromises.push(this.pollNutDevice(key, name));
+            pollTasks.push(() => {
+                return this.pollNutDevice(key, name);
+            });
         });
 
-        for (let i = 0; i < pollPromises.length; i++) {
-            try {
-                await pollPromises[i];
-            } catch (err) {
-                this.log.error(`error polling nut devices: ${err.message}`);
-                break;
-            }
-        }
+        await pollTasks.reduce((p, task) => p.then(task), Promise.resolve());
+
         this.nutPolling = false;
     }
 
