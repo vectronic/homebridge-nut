@@ -296,13 +296,15 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
             pollPromises.push(this.pollNutDevice(key, name));
         });
 
-        Promise.all(pollPromises)
-            .catch((err) => {
+        for (let i = 0; i < pollPromises.length; i++) {
+            try {
+                await pollPromises[i];
+            } catch (err) {
                 this.log.error(`error polling nut devices: ${err.message}`);
-            })
-            .finally(() => {
-                this.nutPolling = false;
-            });
+                break;
+            }
+        }
+        this.nutPolling = false;
     }
 
     nutReady() {
