@@ -26,6 +26,7 @@ export type Ups = {
  * Nut UPS Accessory
  */
 export class NutUPSAccessory {
+    private accessoryInformationService: Service;
     private contactSensorService: Service;
     private batteryService: Service;
 
@@ -35,7 +36,7 @@ export class NutUPSAccessory {
         ups: Ups
     ) {
         // set accessory information
-        accessory.getService(this.platform.Service.AccessoryInformation)!
+        this.accessoryInformationService = accessory.getService(this.platform.Service.AccessoryInformation)!
             .setCharacteristic(this.platform.Characteristic.Manufacturer, ups.manufacturer)
             .setCharacteristic(this.platform.Characteristic.Model, ups.model)
             .setCharacteristic(this.platform.Characteristic.SerialNumber, ups.serialNumber)
@@ -97,6 +98,19 @@ export class NutUPSAccessory {
 
         this.platform.log.debug('update()');
 
+        // update accessory information
+        this.accessoryInformationService.updateCharacteristic(this.platform.Characteristic.Manufacturer,
+            ups.manufacturer);
+        this.accessoryInformationService.updateCharacteristic(this.platform.Characteristic.Model,
+            ups.model);
+        this.accessoryInformationService.updateCharacteristic(this.platform.Characteristic.SerialNumber,
+            ups.serialNumber);
+        this.accessoryInformationService.updateCharacteristic(this.platform.Characteristic.FirmwareRevision,
+            ups.firmwareRevision);
+        this.accessoryInformationService.updateCharacteristic(this.platform.Characteristic.Name,
+            ups.name);
+
+        // update contact sensor
         this.contactSensorService.updateCharacteristic(this.platform.Characteristic.StatusFault,
             ups.fault ?
                 this.platform.Characteristic.StatusFault.GENERAL_FAULT :
@@ -121,6 +135,7 @@ export class NutUPSAccessory {
         // this.contactSensorService.updateCharacteristic(this.platform.Characteristic.UpsPowerConsumptionLevel,
         // ups.powerConsumptionLevel);
 
+        // update battery
         this.batteryService.updateCharacteristic(this.platform.Characteristic.BatteryLevel, ups.batteryLevel);
 
         this.batteryService.updateCharacteristic(this.platform.Characteristic.ChargingState, ups.chargingState);
