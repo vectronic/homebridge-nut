@@ -47,6 +47,14 @@
         "type": "number",
         "description": "The NUT client delay interval between success requests in seconds.",
         "default": 1
+      },
+      "ups_key_excludes": {
+        "type": "array",
+        "description": "A list of Nut configured UPS keys which should be ignored.",
+        "items": {
+          "title": "UPS Key",
+          "type": "string"
+        }
       }
     }
   }

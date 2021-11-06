@@ -47,6 +47,7 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
     private readonly connectInterval: number;
     private readonly commandInterval: number;
     private readonly lowBattThreshold: number;
+    private readonly upsKeyExcludes: Array<string>;
 
     private nutClient;
 
@@ -69,7 +70,8 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
         this.connectInterval = config.connect_interval || 5;
         this.commandInterval = config.command_interval || 1;
         this.lowBattThreshold = config.low_batt_threshold || 40;
-        
+        this.upsKeyExcludes = config.ups_key_excludes || [];
+
         // When this event is fired it means Homebridge has restored all cached accessories from disk.
         api.on(APIEvent.DID_FINISH_LAUNCHING, () => {
             log.debug('didFinishLaunching callback');
@@ -367,7 +369,9 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
                 // store the list of UPS devices
                 this.upsList = upsList;
     
-                const entries = Object.entries(upsList);
+                const entries = Object.entries(upsList).filter((entry) => {
+                    return (this.upsKeyExcludes.length === 0) || !this.upsKeyExcludes.find(element => element === entry[0]);
+                });
     
                 if (entries.length === 0) {
                     this.log.warn('no UPS devices returned from GetUPSList!');

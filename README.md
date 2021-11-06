@@ -45,7 +45,11 @@ Example `config.json` entry:
     "low_batt_threshold": 40,
     "poll_interval": 60,
     "connect_interval": 5,
-    "command_interval": 1
+    "command_interval": 1,
+    "ups_key_excludes": [
+        "foo",
+        "bar"
+    ]
   }
 ]
 ```
@@ -61,6 +65,7 @@ Where the following properties are all optional:
 * `poll_interval` is the UPS polling interval in seconds. Default is `60`.
 * `connect_interval` is the NUT client connection attempt interval in seconds. Default is `5`.
 * `command_interval` is the NUT client delay interval between success requests in seconds. Default is `1`.
+* `ups_key_excludes` is a list of Nut configured UPS keys which should be ignored.
 
 # Help etc.
 
