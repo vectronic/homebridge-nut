@@ -284,10 +284,8 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
         this.nutPolling = true;
 
         // nut client is ready and connected so we can poll the status of UPS devices
-        const entries = Object.entries(this.upsList);
-        
         const pollTasks: Array<() => Promise<void>> = [];
-        entries.forEach((entry) => {
+        this.upsList.forEach((entry) => {
             const key = entry[0];
             let name = entry[1];
 
@@ -366,17 +364,21 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
                 });
             }).then((upsList) => {
     
-                // store the list of UPS devices
-                this.upsList = upsList;
-    
-                const entries = Object.entries(upsList).filter((entry) => {
+                if (Object.entries(upsList).length === 0) {
+                    this.log.warn('no UPS devices returned from GetUPSList!');
+                }
+
+                // store the list of filtered UPS devices
+                this.upsList = Object.entries(upsList).filter((entry) => {
                     return (this.upsKeyExcludes.length === 0) || !this.upsKeyExcludes.find(element => element === entry[0]);
                 });
     
-                if (entries.length === 0) {
-                    this.log.warn('no UPS devices returned from GetUPSList!');
+                if (this.upsList.length === 0) {
+                    if (this.upsKeyExcludes.length > 0) {
+                        this.log.warn('no UPS devices found after applying configured key excludes');
+                    }
                 } else {
-                    const deviceList = entries.map((entry) => `${entry[0]}=${entry[1]}`);
+                    const deviceList = this.upsList.map((entry) => `${entry[0]}=${entry[1]}`);
                     this.log.info(`nut client connected, reported devices: ${deviceList.join(',')}`);
                 }
     
