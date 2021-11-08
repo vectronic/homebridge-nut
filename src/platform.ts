@@ -365,7 +365,7 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
             }).then((upsList) => {
     
                 if (Object.entries(upsList).length === 0) {
-                    this.log.warn('no UPS devices returned from GetUPSList!');
+                    this.log.info('no UPS devices returned from GetUPSList!');
                 }
 
                 // store the list of filtered UPS devices
@@ -375,7 +375,7 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
     
                 if (this.upsList.length === 0) {
                     if (this.upsKeyExcludes.length > 0) {
-                        this.log.warn('no UPS devices found after applying configured key excludes');
+                        this.log.info('no UPS devices found after applying configured key excludes');
                     }
                 } else {
                     const deviceList = this.upsList.map((entry) => `${entry[0]}=${entry[1]}`);
