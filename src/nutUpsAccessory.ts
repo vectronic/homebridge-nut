@@ -51,7 +51,6 @@ export class NutUPSAccessory {
 
             this.contactSensorService.addCharacteristic(this.platform.Characteristic.StatusActive);
             this.contactSensorService.addCharacteristic(this.platform.Characteristic.StatusFault);
-            this.contactSensorService.addCharacteristic(this.platform.Characteristic.CurrentTemperature);
 
             // TODO: workout how to define new characteristics
             // contactSensorService.addCharacteristic(Characteristic.UpsPowerConsumption);
@@ -64,7 +63,6 @@ export class NutUPSAccessory {
         this.contactSensorService.setCharacteristic(this.platform.Characteristic.ContactSensorState,
             this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED);
         this.contactSensorService.setCharacteristic(this.platform.Characteristic.StatusActive, 0);
-        this.contactSensorService.setCharacteristic(this.platform.Characteristic.CurrentTemperature, 0);
 
         // TODO: workout how to define new characteristics
         // this.contactSensorService.setCharacteristic(this.platform.Characteristic.UpsPowerConsumption, 0);
@@ -123,11 +121,6 @@ export class NutUPSAccessory {
 
         this.contactSensorService.updateCharacteristic(this.platform.Characteristic.StatusActive,
             ups.active ? 1 : 0);
-
-        if (!isNaN(ups.temperature)) {
-            this.contactSensorService.updateCharacteristic(this.platform.Characteristic.CurrentTemperature,
-                ups.temperature);
-        }
 
         // TODO: workout how to define new characteristics
         // this.contactSensorService.updateCharacteristic(this.platform.Characteristic.UpsPowerConsumption,
