@@ -311,7 +311,7 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
                 if (this.username === undefined) {
                     return;
                 }
-                return new Promise<object>((resolve, reject) => {
+                return new Promise<object | void>((resolve, reject) => {
                     this.nutClient.SetUsername(this.username, (err) => {
                         if (err) {
                             reject(err);
@@ -328,7 +328,7 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
                 if (this.password === undefined) {
                     return;
                 }
-                return new Promise<object>((resolve, reject) => {
+                return new Promise<object | void>((resolve, reject) => {
                     this.nutClient.SetPassword(this.password, (err) => {
                         if (err) {
                             reject(err);
@@ -345,7 +345,7 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
                 
                 let upsList = [];
     
-                return new Promise<object>((resolve, reject) => {
+                return new Promise<object | void>((resolve, reject) => {
                     
                     this.nutClient.GetUPSList((upsListResponse, err) => {
                         if (err) {
