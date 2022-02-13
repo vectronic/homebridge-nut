@@ -76,14 +76,6 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
         api.on(APIEvent.DID_FINISH_LAUNCHING, () => {
             log.debug('didFinishLaunching callback');
 
-            this.nutClient = new Nut(this.port, this.host);
-
-            this.nutClient.on('ready', this.nutReady.bind(this));
-            this.nutClient.on('close', this.nutClose.bind(this));
-            this.nutClient.on('error', this.nutError.bind(this));
-
-            this.log.info(`created nut client for ${this.host}:${this.port}`);
-
             this.startPolling();
         });
     }
@@ -383,17 +375,17 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
                 }
     
                 this.nutConnected = true;
-                this.nutConnecting = false;
             })
             .catch((err) => {
                 this.log.error(`error invoking GetUPSList on nut client: ${err.message}`);
-
+            })
+            .finally(() => {
                 this.nutConnecting = false;
             });
     }
 
-    nutClose() {
-        this.log.info('nutClose()');
+    nutClose(hadError) {
+        this.log.info(`nutClose(hadError: ${hadError})`);
 
         this.nutConnecting = false;
         this.nutConnected = false;
@@ -421,6 +413,13 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
         const connectInterval = setInterval(() => {
 
             if (!this.nutConnected && !this.nutConnecting) {
+                this.log.info(`creating nut client for ${this.host}:${this.port}`);
+
+                this.nutClient = new Nut(this.port, this.host);
+
+                this.nutClient.on('ready', this.nutReady.bind(this));
+                this.nutClient.on('close', this.nutClose.bind(this));
+                this.nutClient.on('error', this.nutError.bind(this));
 
                 this.log.info(`starting nut client for ${this.host}:${this.port}`);
 
