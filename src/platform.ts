@@ -384,8 +384,8 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
             });
     }
 
-    nutClose(hadError) {
-        this.log.info(`nutClose(hadError: ${hadError})`);
+    nutClose() {
+        this.log.info('nutClose()');
 
         this.nutConnecting = false;
         this.nutConnected = false;
@@ -413,6 +413,9 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
         const connectInterval = setInterval(() => {
 
             if (!this.nutConnected && !this.nutConnecting) {
+
+                this.nutConnecting = true;
+
                 this.log.info(`creating nut client for ${this.host}:${this.port}`);
 
                 this.nutClient = new Nut(this.port, this.host);
