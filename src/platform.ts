@@ -212,10 +212,23 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
 
         // NUT manual says ups variables mirror device variables and will eventually be removed,
         // so prefer device values over ups values
-        const manufacturer = upsInfo['device.mfr'] || upsInfo['ups.mfr'] || 'Unknown';
-        const model = upsInfo['device.model'] || upsInfo['ups.model'] || 'Unknown';
-        const serialNumber = upsInfo['device.serial'] || upsInfo['ups.serial'] || 'Unknown';
-        const firmwareRevision = upsInfo['ups.firmware'] || 'Unknown';
+        let manufacturer = upsInfo['device.mfr'] || upsInfo['ups.mfr'] || '';
+        let model = upsInfo['device.model'] || upsInfo['ups.model'] || '';
+        let serialNumber = upsInfo['device.serial'] || upsInfo['ups.serial'] || '';
+        let firmwareRevision = upsInfo['ups.firmware'] || '';
+
+        if (manufacturer.trim() === '') {
+            manufacturer = 'Unknown';
+        }
+        if (model.trim() === '') {
+            model = 'Unknown';
+        }
+        if (serialNumber.trim() === '') {
+            serialNumber = 'Unknown';
+        }
+        if (firmwareRevision.trim() === '') {
+            firmwareRevision = 'Unknown';
+        }
 
         const ups: Ups = {
             key: upsKey,
