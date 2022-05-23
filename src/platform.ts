@@ -370,7 +370,7 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
             }).then((upsList) => {
     
                 if (Object.entries(upsList).length === 0) {
-                    this.log.info('no UPS devices returned from GetUPSList!');
+                    this.log.warn('no UPS devices returned from GetUPSList!');
                 }
 
                 // store the list of filtered UPS devices
@@ -380,11 +380,11 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
     
                 if (this.upsList.length === 0) {
                     if (this.upsKeyExcludes.length > 0) {
-                        this.log.info('no UPS devices found after applying configured key excludes');
+                        this.log.warn('no UPS devices found after applying configured key excludes');
                     }
                 } else {
                     const deviceList = this.upsList.map((entry) => `${entry[0]}=${entry[1]}`);
-                    this.log.info(`nut client connected, reported devices: ${deviceList.join(',')}`);
+                    this.log.debug(`nut client connected, reported devices: ${deviceList.join(',')}`);
                 }
     
                 this.nutConnected = true;
@@ -398,7 +398,7 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
     }
 
     nutClose() {
-        this.log.info('nutClose()');
+        this.log.debug('nutClose()');
 
         this.nutConnecting = false;
         this.nutConnected = false;
@@ -429,7 +429,7 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
 
                 this.nutConnecting = true;
 
-                this.log.info(`creating nut client for ${this.host}:${this.port}`);
+                this.log.debug(`creating nut client for ${this.host}:${this.port}`);
 
                 this.nutClient = new Nut(this.port, this.host);
 
@@ -437,7 +437,7 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
                 this.nutClient.on('close', this.nutClose.bind(this));
                 this.nutClient.on('error', this.nutError.bind(this));
 
-                this.log.info(`starting nut client for ${this.host}:${this.port}`);
+                this.log.debug(`starting nut client for ${this.host}:${this.port}`);
 
                 // Start nut... this will eventually emit the nut ready event
                 this.nutClient.start();
