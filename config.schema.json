@@ -55,6 +55,12 @@
           "title": "UPS Key",
           "type": "string"
         }
+      },
+      "disable_battery_service": {
+        "type": "boolean",
+        "description": "Whether to disable battery service on accessories. In normal circumstances, you can ignore this or leave the default value of false.",
+        "default": false,
+        "required": false
       }
     }
   }

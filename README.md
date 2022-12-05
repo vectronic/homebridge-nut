@@ -49,7 +49,8 @@ Example `config.json` entry:
     "ups_key_excludes": [
         "foo",
         "bar"
-    ]
+    ],
+    "disable_battery_service": false
   }
 ]
 ```
@@ -66,6 +67,7 @@ Where the following properties are all optional:
 * `connect_interval` is the NUT client connection attempt interval in seconds. Default is `5`.
 * `command_interval` is the NUT client delay interval between success requests in seconds. Default is `1`.
 * `ups_key_excludes` is a list of Nut configured UPS keys which should be ignored.
+* `disable_battery_service` is optional and should almost always be `false` which is the default. In rare circumstances where your UPS is not fully supported by NUT you may wish to disable this.
 
 # Help etc.
 

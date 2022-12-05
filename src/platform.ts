@@ -64,6 +64,7 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
 
         this.host = config.host || 'localhost';
         this.port = config.port || 3493;
+        this.config = config;
         this.username = config.username;
         this.password = config.password;
         this.pollInterval = config.poll_interval || 60;
@@ -99,7 +100,7 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
 
             // update the existing handler
             const nutUPSAccessory = this.upsByUpsKey.get(ups.key);
-            
+
             if (nutUPSAccessory) {
                 nutUPSAccessory.update(ups);
             }
@@ -138,7 +139,7 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
             // link the accessory to your platform
             this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
         }
-        
+
         // now that we know an accessory exists, update it
         nutUPSAccessory.update(ups);
     }
@@ -175,7 +176,7 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
                 temperature = temp;
             }
         }
-        
+
         let batteryLevel = 0;
         if ('battery.charge' in upsInfo) {
             const charge = parseFloat(upsInfo['battery.charge']);
@@ -196,7 +197,7 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
 
         let powerConsumption = NaN;
         let powerConsumptionLevel = NaN;
-        
+
         if (('ups.status' in upsInfo) && ('ups.power.nominal' in upsInfo)) {
             const loadPercent = parseInt(upsInfo['ups.load']);
             const nominalPower = parseInt(upsInfo['ups.power.nominal']);
@@ -247,7 +248,7 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
             serialNumber: serialNumber.trim(),
             firmwareRevision: firmwareRevision.trim()
         };
-        
+
         this.log.debug(`parsed UPS values: ${JSON.stringify(ups)}`);
 
         return ups;
@@ -347,11 +348,11 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
                     return this.commandDelay();
                 });
             }).then(() => {
-                
+
                 let upsList = [];
-    
+
                 return new Promise<object | void>((resolve, reject) => {
-                    
+
                     this.nutClient.GetUPSList((upsListResponse, err) => {
                         if (err) {
                             reject(err);
@@ -365,10 +366,10 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
                     // delay after get UPS List command
                     return this.commandDelay();
                 }).then(() => {
-                    return upsList; 
+                    return upsList;
                 });
             }).then((upsList) => {
-    
+
                 if (Object.entries(upsList).length === 0) {
                     this.log.warn('no UPS devices returned from GetUPSList!');
                 }
@@ -377,7 +378,7 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
                 this.upsList = Object.entries(upsList).filter((entry) => {
                     return (this.upsKeyExcludes.length === 0) || !this.upsKeyExcludes.find(element => element === entry[0]);
                 });
-    
+
                 if (this.upsList.length === 0) {
                     if (this.upsKeyExcludes.length > 0) {
                         this.log.warn('no UPS devices found after applying configured key excludes');
@@ -386,7 +387,7 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
                     const deviceList = this.upsList.map((entry) => `${entry[0]}=${entry[1]}`);
                     this.log.debug(`nut client connected, reported devices: ${deviceList.join(',')}`);
                 }
-    
+
                 this.nutConnected = true;
             })
             .catch((err) => {

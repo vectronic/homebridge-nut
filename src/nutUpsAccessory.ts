@@ -28,7 +28,7 @@ export type Ups = {
 export class NutUPSAccessory {
     private accessoryInformationService: Service;
     private contactSensorService: Service;
-    private batteryService: Service;
+    private batteryService: Service | undefined;
 
     constructor(
         private readonly platform: NutHomebridgePlatform,
@@ -67,15 +67,20 @@ export class NutUPSAccessory {
         // TODO: workout how to define new characteristics
         // this.contactSensorService.setCharacteristic(this.platform.Characteristic.UpsPowerConsumption, 0);
         // this.contactSensorService.setCharacteristic(this.platform.Characteristic.UpsPowerConsumptionLevel, 0);
-        
+
         // set the service name, this is what is displayed as the default name on the Home app
         this.contactSensorService.setCharacteristic(this.platform.Characteristic.Name, ups.name);
 
+        if (this.platform.config.disable_battery_service && (this.platform.config.disable_battery_service === true)) {
+            this.platform.log.info('skipping declaration of battery service as disable_battery_service is true');
+            return;
+        }
+
         // get the Battery service if it exists, otherwise create a new Battery service
-        if (accessory.getService(this.platform.Service.BatteryService)) {
-            this.batteryService = accessory.getService(this.platform.Service.BatteryService) as Service;
+        if (accessory.getService(this.platform.Service.Battery)) {
+            this.batteryService = accessory.getService(this.platform.Service.Battery) as Service;
         } else {
-            this.batteryService = accessory.addService(this.platform.Service.BatteryService);
+            this.batteryService = accessory.addService(this.platform.Service.Battery);
         }
 
         // set default initial state
@@ -128,15 +133,17 @@ export class NutUPSAccessory {
         // this.contactSensorService.updateCharacteristic(this.platform.Characteristic.UpsPowerConsumptionLevel,
         // ups.powerConsumptionLevel);
 
-        // update battery
-        this.batteryService.updateCharacteristic(this.platform.Characteristic.BatteryLevel, ups.batteryLevel);
+        if (this.batteryService !== undefined) {
+            // update battery
+            this.batteryService.updateCharacteristic(this.platform.Characteristic.BatteryLevel, ups.batteryLevel);
 
-        this.batteryService.updateCharacteristic(this.platform.Characteristic.ChargingState, ups.chargingState);
+            this.batteryService.updateCharacteristic(this.platform.Characteristic.ChargingState, ups.chargingState);
 
-        this.batteryService.updateCharacteristic(this.platform.Characteristic.StatusLowBattery,
-            ups.lowBattery ?
-                this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW :
-                this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL);
+            this.batteryService.updateCharacteristic(this.platform.Characteristic.StatusLowBattery,
+                ups.lowBattery ?
+                    this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW :
+                    this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL);
+        }
 
         this.platform.log.debug(`pushed changed UPS state to HomeKit for ${ups.key}=${ups.name}`);
     }
