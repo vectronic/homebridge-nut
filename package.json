@@ -1,7 +1,8 @@
 {
   "name": "@vectronic/homebridge-nut",
   "displayName": "Homebridge NUT (Network UPS Tools)",
-  "version": "2.4.6",
+  "type": "module",
+  "version": "2.5.0",
   "description": "A NUT (Network UPS Tools) Plugin for Homebridge leveraging node-nut.",
   "main": "dist/index.js",
   "repository": {
@@ -12,9 +13,10 @@
     "url": "https://github.com/vectronic/homebridge-nut/issues"
   },
   "scripts": {
-    "lint": "eslint src/**.ts",
     "build": "rimraf ./dist && tsc",
-    "prepublishOnly": "npm run lint && npm run build"
+    "lint": "eslint . --max-warnings=0",
+    "prepublishOnly": "npm run lint && npm run build",
+    "watch": "npm run build && npm link && nodemon"
   },
   "keywords": [
     "homebridge-plugin",
@@ -25,20 +27,21 @@
   "author": "vectronic",
   "license": "ISC",
   "engines": {
-    "node": ">=10.17.0",
-    "homebridge": ">=1.1.0"
+    "node": "^20.18.0 || ^22.10.0 || ^24.0.0",
+    "homebridge": "^1.8.0 || ^2.0.0-beta.0"
   },
   "dependencies": {
     "node-nut": "1.0.3"
   },
   "devDependencies": {
-    "@types/node": "17.0.16",
-    "@typescript-eslint/eslint-plugin": "5.11.0",
-    "@typescript-eslint/parser": "5.11.0",
-    "eslint": "8.8.0",
-    "homebridge": "^1.3.9",
-    "rimraf": "3.0.2",
-    "ts-node": "10.5.0",
-    "typescript": "4.5.5"
+    "@eslint/js": "^9.39.1",
+    "@types/node": "^24.10.1",
+    "eslint": "^9.39.1",
+    "homebridge": "^2.0.0-beta.55",
+    "nodemon": "^3.1.11",
+    "rimraf": "^6.1.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.4"
   }
 }

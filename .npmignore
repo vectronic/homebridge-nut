@@ -3,8 +3,11 @@ src
 
 # ------------- Defaults ------------- #
 
+# gitHub actions
+.github
+
 # eslint
-.eslintrc
+eslint.config.js
 
 # typescript
 tsconfig.json

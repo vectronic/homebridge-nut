@@ -2,7 +2,7 @@ import {
     PlatformAccessory,
     Service
 } from 'homebridge';
-import { NutHomebridgePlatform } from './platform';
+import { NutHomebridgePlatform } from './platform.js';
 
 export type Ups = {
     key: string;

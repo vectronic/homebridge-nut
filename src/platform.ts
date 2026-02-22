@@ -10,16 +10,16 @@ import {
 } from 'homebridge';
 import Nut from 'node-nut';
 
-import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
-import { NutUPSAccessory, Ups } from './nutUpsAccessory';
+import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js';
+import { NutUPSAccessory, Ups } from './nutUpsAccessory.js';
 
 /**
  * NutHomebridgePlatform
  */
 export class NutHomebridgePlatform implements DynamicPlatformPlugin {
 
-    public readonly Service: typeof Service = this.api.hap.Service;
-    public readonly Characteristic: typeof Characteristic = this.api.hap.Characteristic;
+    public readonly Service!: typeof Service;
+    public readonly Characteristic!: typeof Characteristic;
 
     // this is used to track restored cached accessories
     public readonly existingAccessories: PlatformAccessory[] = [];
@@ -60,6 +60,9 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
         public readonly config: PlatformConfig,
         public readonly api: API
     ) {
+        this.Service = api.hap.Service;
+        this.Characteristic = api.hap.Characteristic;
+
         log.debug('finished initializing platform');
 
         this.host = config.host || 'localhost';
@@ -147,14 +150,14 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
     parseUpsVars(upsKey, upsName, upsVars) {
         this.log.debug(`parseUpsVars(${upsKey})`);
 
-        const upsInfo = {};
+        const upsInfo: Record<string, string> = {};
 
         this.log.debug(`UPS info for device: ${upsKey}=${upsName} =>`);
 
         Object.entries(upsVars).forEach(([key, value]) => {
 
             this.log.debug(`${key}=${value}`);
-            upsInfo[key] = value;
+            upsInfo[key] = value as string;
         });
 
         let active = false;
