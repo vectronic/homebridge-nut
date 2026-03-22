@@ -169,7 +169,7 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
         let onBattery = false;
         if ('ups.status' in upsInfo) {
             const status = upsInfo['ups.status'] as string;
-            onBattery = status.startsWith('OB');
+            onBattery = status.trim().split(' ').includes('OB');
         }
 
         let temperature = NaN;
@@ -186,15 +186,18 @@ export class NutHomebridgePlatform implements DynamicPlatformPlugin {
             if ((charge !== undefined) && !isNaN(charge)) {
                 batteryLevel = charge;
             }
+        } else {
+            this.log.warn(`battery.charge not reported by NUT for ${upsKey}; battery level will be reported as 0`);
         }
 
         let chargingState = this.Characteristic.ChargingState.NOT_CHARGING;
         if ('ups.status' in upsInfo) {
             const upsStatus = upsInfo['ups.status'] as string;
-            if (upsStatus === 'OL CHRG' || upsStatus === 'OL') {
-                chargingState = this.Characteristic.ChargingState.CHARGING;
-            } else if (upsStatus === 'OB DISCHRG' || upsStatus === 'OB') {
+            const statusFlags = upsStatus.trim().split(' ');
+            if (statusFlags.includes('OB')) {
                 chargingState = this.Characteristic.ChargingState.NOT_CHARGEABLE;
+            } else if (statusFlags.includes('CHRG')) {
+                chargingState = this.Characteristic.ChargingState.CHARGING;
             }
         }
 
